@@ -37,6 +37,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends clamav clamav-freshclam
           sudo systemctl stop clamav-freshclam || true
           mkdir -p staging/clamav
+          sudo chown clamav:clamav staging/clamav
           sudo freshclam --datadir="${PWD}/staging/clamav" --stdout
           sudo chown -R "$(id -u):$(id -g)" staging/clamav
           sigtool --info staging/clamav/daily.c*d | grep -F "Verification OK."
