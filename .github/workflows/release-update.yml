@@ -1,0 +1,87 @@
+name: Build definitions update
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        type: choice
+        options: [stable, emergency]
+        default: stable
+      minimum_filtvatt_version:
+        description: Minimum compatible Filtvätt version
+        required: true
+        default: 1.2.0
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Fetch official ClamAV databases
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          mkdir -p staging/clamav
+          sudo freshclam --datadir="${PWD}/staging/clamav" --stdout
+          sudo chown -R "$(id -u):$(id -g)" staging/clamav
+          sigtool --info staging/clamav/daily.c*d | grep -F "Verification OK."
+      - name: Fetch compatible capa rules
+        env:
+          CAPA_RULES_VERSION: v9.4.0
+        run: |
+          curl -fsSL "https://github.com/mandiant/capa-rules/archive/refs/tags/${CAPA_RULES_VERSION}.tar.gz" -o /tmp/capa-rules.tgz
+          mkdir -p staging/capa-rules
+          tar -xzf /tmp/capa-rules.tgz --strip-components=1 -C staging/capa-rules
+      - name: Prepare signing key
+        env:
+          SIGNING_KEY: ${{ secrets.FILTVATT_UPDATE_SIGNING_KEY }}
+        run: |
+          test -n "$SIGNING_KEY"
+          umask 077
+          printf '%s' "$SIGNING_KEY" > "$RUNNER_TEMP/update-signing-private.pem"
+      - name: Build and verify package
+        env:
+          REQUESTED_CHANNEL: ${{ inputs.channel }}
+          REQUESTED_MINIMUM: ${{ inputs.minimum_filtvatt_version }}
+        run: |
+          UPDATE_VERSION="$(date -u +%Y.%m.%d).${GITHUB_RUN_NUMBER}"
+          UPDATE_SEQUENCE="$(date -u +%s)"
+          CHANNEL="${REQUESTED_CHANNEL:-stable}"
+          MINIMUM="${REQUESTED_MINIMUM:-1.2.0}"
+          node scripts/build-update.mjs \
+            --clamav staging/clamav --capa staging/capa-rules --yara rules/yara \
+            --key "$RUNNER_TEMP/update-signing-private.pem" --output dist \
+            --version "$UPDATE_VERSION" --sequence "$UPDATE_SEQUENCE" \
+            --channel "$CHANNEL" --minimum "$MINIMUM" --capa-version 9.4.0
+          PACKAGE="dist/filtvatt-update-${UPDATE_VERSION}.filtvatt-update"
+          node scripts/verify-update.mjs "$PACKAGE"
+          cp staging/capa-rules/LICENSE.txt dist/capa-rules-LICENSE.txt
+          echo "UPDATE_VERSION=$UPDATE_VERSION" >> "$GITHUB_ENV"
+          echo "PACKAGE=$PACKAGE" >> "$GITHUB_ENV"
+      - name: Attest package provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: ${{ env.PACKAGE }}
+      - name: Publish immutable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "definitions-${UPDATE_VERSION}" \
+            "$PACKAGE" "$PACKAGE.sha256" dist/release-info.json dist/capa-rules-LICENSE.txt THIRD_PARTY_NOTICES.md LICENSE \
+            --title "Filtvätt definitions ${UPDATE_VERSION}" \
+            --notes "Verifierbart definitionspaket för Filtvätt. Trellix ingår inte."
