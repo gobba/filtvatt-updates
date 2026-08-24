@@ -10,7 +10,7 @@ test("byggaren skapar ett paket som den fristående verifieraren godkänner", as
   try {
     for (const name of ["clamav", "capa", "yara", "output"]) await mkdir(resolve(root, name));
     await writeFile(resolve(root, "clamav", "main.cvd"), "main"); await writeFile(resolve(root, "clamav", "daily.cvd"), "daily");
-    await writeFile(resolve(root, "capa", "test.yml"), "rule:\n  meta:\n    name: test\n");
+    await writeFile(resolve(root, "capa", "test-doppelgänging.yml"), "rule:\n  meta:\n    name: test\n");
     await writeFile(resolve(root, "yara", "test.yar"), "rule test { condition: false }\n");
     const pair = generateKeyPairSync("ed25519"); const privatePath = resolve(root, "private.pem"); const publicPath = resolve(root, "public.pem");
     await writeFile(privatePath, pair.privateKey.export({ type: "pkcs8", format: "pem" }));

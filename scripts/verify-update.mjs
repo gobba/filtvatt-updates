@@ -7,12 +7,17 @@ import { extract, list } from "tar";
 const packagePath = resolve(process.argv[2] ?? ""); const publicKeyPath = resolve(process.argv[3] ?? "keys/filtvatt-update-signing-public.pem");
 if (!process.argv[2]) throw new Error("Användning: node scripts/verify-update.mjs paket.filtvatt-update [public.pem]");
 const root = resolve("dist", `.verify-${process.pid}`); await rm(root, { recursive: true, force: true }); await mkdir(root, { recursive: true });
+const hasUnsafeCharacter = (path) => {
+  for (const character of path) { const code = character.codePointAt(0) ?? 0; if (code <= 0x20 || code === 0x7f) return true; }
+  return false;
+};
+const safePackagePath = (path) => path.length > 0 && path.length <= 240 && !path.startsWith("/") && !path.includes("\\")
+  && !hasUnsafeCharacter(path) && posix.normalize(path) === path && !path.split("/").includes("..");
 try {
   const entries = new Map(); let count = 0;
   await list({ file: packagePath, strict: true, onReadEntry: (entry) => {
     count += 1;
-    if (count > 20_000 || !entry.path || entry.path.startsWith("/") || entry.path.includes("\\") || posix.normalize(entry.path) !== entry.path
-      || entry.path.split("/").includes("..") || (entry.type !== "File" && entry.type !== "Directory") || entries.has(entry.path)) {
+    if (count > 20_000 || !safePackagePath(entry.path) || (entry.type !== "File" && entry.type !== "Directory") || entries.has(entry.path)) {
       entry.resume(); throw new Error(`Otillåten arkivpost: ${entry.path}`);
     }
     entries.set(entry.path, { type: entry.type, size: entry.size }); entry.resume();
@@ -28,7 +33,7 @@ try {
   const actualPaths = [...entries.entries()].filter(([, entry]) => entry.type === "File").map(([path]) => path).filter((path) => path !== "manifest.json" && path !== "manifest.sig");
   if (declaredPaths.size !== declared.length || actualPaths.length !== declared.length || actualPaths.some((path) => !declaredPaths.has(path))) throw new Error("Paketets filer stämmer inte med manifestet.");
   for (const file of declared) {
-    if (!/^[A-Za-z0-9._/-]+$/.test(file.path) || file.path.split("/").includes("..") || entries.get(file.path)?.size !== file.size) throw new Error(`Ogiltig filpost: ${file.path}`);
+    if (!safePackagePath(file.path) || entries.get(file.path)?.size !== file.size) throw new Error(`Ogiltig filpost: ${file.path}`);
     const hash = createHash("sha256"); for await (const chunk of createReadStream(resolve(root, file.path))) hash.update(chunk);
     if (hash.digest("hex") !== file.sha256) throw new Error(`SHA-256 stämmer inte för ${file.path}`);
   }

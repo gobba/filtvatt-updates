@@ -35,13 +35,23 @@ async function sha256(path) {
   const hash = createHash("sha256"); for await (const chunk of createReadStream(path)) hash.update(chunk); return hash.digest("hex");
 }
 
+function hasUnsafeCharacter(path) {
+  for (const character of path) { const code = character.codePointAt(0) ?? 0; if (code <= 0x20 || code === 0x7f) return true; }
+  return false;
+}
+
+function safePackagePath(path) {
+  return path.length > 0 && path.length <= 240 && !path.startsWith("/") && !path.includes("\\")
+    && !hasUnsafeCharacter(path) && posix.normalize(path) === path && !path.split("/").includes("..");
+}
+
 async function copyComponentFiles(sourceRoot, destinationRoot, prefix, accepted, acceptedPath = () => true) {
   const files = [];
   for (const source of await filesBelow(sourceRoot, accepted)) {
     const suffix = relative(sourceRoot, source).split(sep).join(posix.sep);
     if (!acceptedPath(suffix)) continue;
     const packagePath = `${prefix}/${suffix}`; const target = resolve(destinationRoot, packagePath);
-    if (!/^[A-Za-z0-9._/-]+$/.test(packagePath) || packagePath.split("/").includes("..")) throw new Error(`Otillåten sökväg i komponenten: ${packagePath}`);
+    if (!safePackagePath(packagePath)) throw new Error(`Otillåten sökväg i komponenten: ${packagePath}`);
     await mkdir(resolve(target, ".."), { recursive: true });
     const bytes = await readFile(source); await writeFile(target, bytes, { mode: 0o644, flag: "wx" });
     files.push({ path: packagePath, sha256: await sha256(target), size: bytes.length });
