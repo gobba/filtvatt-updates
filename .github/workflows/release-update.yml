@@ -36,9 +36,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends clamav clamav-freshclam
           sudo systemctl stop clamav-freshclam || true
+          sudo install -d -o clamav -g clamav -m 0755 /tmp/filtvatt-clamav
+          sudo -u clamav freshclam --datadir=/tmp/filtvatt-clamav --stdout
           mkdir -p staging/clamav
-          sudo chown clamav:clamav staging/clamav
-          sudo freshclam --datadir="${PWD}/staging/clamav" --stdout
+          sudo cp /tmp/filtvatt-clamav/*.c*d staging/clamav/
           sudo chown -R "$(id -u):$(id -g)" staging/clamav
           sigtool --info staging/clamav/daily.c*d | grep -F "Verification OK."
       - name: Fetch compatible capa rules
