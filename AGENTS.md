@@ -11,6 +11,15 @@ Also read the workspace instructions at
 - Begin and end with `git status --short --branch`.
 - Preserve changes from other tasks and do not move or release from an actively
   changing worktree.
+- Follow the workspace commit and push ownership strategy. With parallel work,
+  use a dedicated branch and worktree, commit and push only that task's finished
+  changes, and leave integration to the designated integrator. If several tasks
+  have already written to the same dirty worktree, only the last remaining task
+  or designated integrator may commit the combined result after all writers are
+  idle.
+- Do not report implementation work as complete without either a pushed commit
+  or a precise handoff containing the commit or worktree, changed files,
+  verification, push state, and named integration owner.
 - On Windows, use
   `C:\Users\gobba\.codex\bin\codex-git-remote.ps1` for GitHub fetch, pull, and
   push. Never expose the GitHub token.
