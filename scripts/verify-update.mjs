@@ -27,7 +27,9 @@ try {
   const manifestBytes = await readFile(resolve(root, "manifest.json")); const signature = await readFile(resolve(root, "manifest.sig"));
   if (!verify(null, manifestBytes, createPublicKey(await readFile(publicKeyPath)), signature)) throw new Error("Manifestsignaturen är ogiltig.");
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
-  if (manifest.schema !== "filtvatt.update" || manifest.version !== 1 || !Array.isArray(manifest.components)) throw new Error("Manifestformatet är ogiltigt.");
+  if (manifest.schema !== "filtvatt.update" || manifest.version !== 1
+    || typeof manifest.updateVersion !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(manifest.updateVersion)
+    || !Array.isArray(manifest.components)) throw new Error("Manifestformatet är ogiltigt.");
   const declared = manifest.components.flatMap((component) => component.files);
   const declaredPaths = new Set(declared.map((file) => file.path));
   const actualPaths = [...entries.entries()].filter(([, entry]) => entry.type === "File").map(([path]) => path).filter((path) => path !== "manifest.json" && path !== "manifest.sig");
@@ -37,5 +39,5 @@ try {
     const hash = createHash("sha256"); for await (const chunk of createReadStream(resolve(root, file.path))) hash.update(chunk);
     if (hash.digest("hex") !== file.sha256) throw new Error(`SHA-256 stämmer inte för ${file.path}`);
   }
-  process.stdout.write(`UPDATE_VERIFY_PASS sequence=${manifest.sequence} components=${manifest.components.length}\n`);
+  process.stdout.write(`UPDATE_VERIFY_PASS version=${manifest.updateVersion} sequence=${manifest.sequence} components=${manifest.components.length}\n`);
 } finally { await rm(root, { recursive: true, force: true }); }

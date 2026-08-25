@@ -20,6 +20,6 @@ test("byggaren skapar ett paket som den fristående verifieraren godkänner", as
     const packagePath = resolve(root, "output", "filtvatt-update-test.1.filtvatt-update");
     assert.ok((await readFile(packagePath)).length > 0);
     const verified = spawnSync(process.execPath, ["scripts/verify-update.mjs", packagePath, publicPath], { cwd: process.cwd(), encoding: "utf8" });
-    assert.equal(verified.status, 0, verified.stderr); assert.match(verified.stdout, /UPDATE_VERIFY_PASS sequence=123 components=3/);
+    assert.equal(verified.status, 0, verified.stderr); assert.match(verified.stdout, /UPDATE_VERIFY_PASS version=test\.1 sequence=123 components=3/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

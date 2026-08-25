@@ -7,7 +7,7 @@ En release innehåller en fil med ändelsen `.filtvatt-update`, SHA-256 och GitH
 - officiella, signerade ClamAV-databaser hämtade med FreshClam;
 - Filtvätts egna YARA-X-regler;
 - den capa-regelversion som passar produktens capa-huvudversion;
-- ett Ed25519-signerat manifest med källa, licens, version, byggtid, storlek och SHA-256 för varje fil.
+- ett Ed25519-signerat manifest med motorpaketets eget versionsnummer och sekvensnummer samt källa, licens, version, byggtid, storlek och SHA-256 för varje komponentfil.
 
 Trellix-motor, licens och DAT-filer publiceras aldrig här. De hämtas och hanteras av den licensierade organisationen.
 
@@ -32,6 +32,8 @@ node scripts/build-update.mjs \
 ```
 
 Den privata produktionsnyckeln finns inte i repositoryt. GitHub-workflowen läser den från repositoryhemligheten `FILTVATT_UPDATE_SIGNING_KEY`.
+
+`--version` är motorpaketets publika versionsnummer och används i releasen, filnamnet och det signerade manifestet. `--sequence` är ett separat, strikt stigande heltal som Filtvätt använder för att stoppa återinstallation och nedgradering; det är inte ett användarvänt versionsnummer.
 
 ## Licenser
 

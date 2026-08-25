@@ -63,6 +63,7 @@ const args = argumentsMap(process.argv.slice(2));
 const clamavRoot = resolve(required(args, "clamav")); const capaRoot = resolve(required(args, "capa")); const yaraRoot = resolve(required(args, "yara"));
 const keyPath = resolve(required(args, "key")); const outputRoot = resolve(required(args, "output"));
 const releaseVersion = required(args, "version"); const sequence = Number(required(args, "sequence"));
+if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(releaseVersion)) throw new Error("--version måste vara 1–64 tecken och får bara innehålla bokstäver, siffror, punkt, understreck och bindestreck.");
 if (!Number.isSafeInteger(sequence) || sequence <= 0) throw new Error("--sequence måste vara ett positivt heltal.");
 
 const stage = resolve(outputRoot, `.stage-${process.pid}`); await rm(stage, { recursive: true, force: true }); await mkdir(stage, { recursive: true });
@@ -75,7 +76,7 @@ try {
 
   const createdAt = new Date().toISOString();
   const manifest = {
-    schema: "filtvatt.update", version: 1, sequence,
+    schema: "filtvatt.update", version: 1, updateVersion: releaseVersion, sequence,
     channel: args.get("channel") === "emergency" ? "emergency" : "stable",
     createdAt, minFiltvattVersion: args.get("minimum") ?? "1.2.0",
     components: [
