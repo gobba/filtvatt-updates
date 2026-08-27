@@ -17,6 +17,11 @@ Also read the workspace instructions at
   have already written to the same dirty worktree, only the last remaining task
   or designated integrator may commit the combined result after all writers are
   idle.
+- Every code or documentation task must open a pull request against `main` and
+  leave it unmerged unless it is the explicitly designated integration or
+  release task. The handoff must name the pull request URL, head commit, checks
+  run and deliberately not run, risks, dependencies, merge-order notes, and any
+  intentionally excluded or uncommitted files.
 - Do not report implementation work as complete without either a pushed commit
   or a precise handoff containing the commit or worktree, changed files,
   verification, push state, and named integration owner.
