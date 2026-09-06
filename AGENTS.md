@@ -1,33 +1,34 @@
 # Filtvatt definition repository instructions
 
-This is the separate definitions repository. Its canonical remote is
-`https://github.com/gobba/filtvatt-updates.git`, branch `main`. It publishes
-signed scanner data; it does not publish or deploy the Filtvatt application.
-Also read the workspace instructions at
-`C:\Users\gobba\OneDrive\Documents\ChatGPT\Filtvätt\AGENTS.md`.
+Canonical remote: `https://github.com/gobba/filtvatt-updates.git`; base: `main`.
+This repository publishes scanner data, not the Filtvatt application. These
+rules are self-contained and do not require a personal Windows workspace.
 
-## Collaboration and Git
+## Collaboration and delivery
 
-- Begin and end with `git status --short --branch`.
-- Preserve changes from other tasks and do not move or release from an actively
-  changing worktree.
-- Follow the workspace commit and push ownership strategy. With parallel work,
-  use a dedicated branch and worktree, commit and push only that task's finished
-  changes, and leave integration to the designated integrator. If several tasks
-  have already written to the same dirty worktree, only the last remaining task
-  or designated integrator may commit the combined result after all writers are
-  idle.
-- Every code or documentation task must open a pull request against `main` and
-  leave it unmerged unless it is the explicitly designated integration or
-  release task. The handoff must name the pull request URL, head commit, checks
-  run and deliberately not run, risks, dependencies, merge-order notes, and any
-  intentionally excluded or uncommitted files.
-- Do not report implementation work as complete without either a pushed commit
-  or a precise handoff containing the commit or worktree, changed files,
-  verification, push state, and named integration owner.
-- On Windows, use
-  `C:\Users\gobba\.codex\bin\codex-git-remote.ps1` for GitHub fetch, pull, and
-  push. Never expose the GitHub token.
+- Verify `origin` and run `git status --short --branch` at task start, before
+  committing or publishing, and at handoff. Preserve other tasks' changes.
+- Start implementation from current `origin/main` on a named task branch.
+  Use a separate worktree when work is parallel or the checkout belongs to
+  another task. Never move or commit a shared dirty worktree with active writers.
+- Unless the user requests local-only work, commit only finished task-owned
+  changes, integrate current `origin/main`, push the branch, and open a PR.
+  Read-only tasks need no PR. A PR does not authorize merging or deployment.
+- Only an explicitly designated integration or release task may merge or write
+  directly to `main`. Being the last active task grants no integration mandate.
+  If mixed changes exist, preserve them and prepare a handoff; the designated
+  integrator collects writer handoffs and reviews the complete diff once idle.
+- Deployment, manual publication and release require an explicit user request.
+  Reuse authorization already given for the same scope; finish independent
+  authorized preparation before asking about a genuinely missing decision.
+- Handoff: PR URL, head commit, branch/worktree, push state, checks run and
+  deliberately omitted, material risks, dependencies/merge order, and excluded
+  or uncommitted files. Name the integration owner, or state that none is assigned.
+  If delivery is blocked, report the completed portion and remaining work;
+  do not describe an unpushed or unverified implementation as fully complete.
+- Exclude caches, build output, credentials, private keys and temporary files
+  from commits. Stop only task-owned temporary processes/services at completion;
+  preserve shared Docker, VPS and user services unless their operation was requested.
 
 ## What may be distributed
 
@@ -40,44 +41,15 @@ The production Ed25519 private key is stored only in the GitHub repository
 secret `FILTVATT_UPDATE_SIGNING_KEY`. Never add it to Git, artifacts, logs, or a
 command line. The matching public key is the verification authority.
 
-## Tests
+## Runtime and verification
 
-Use focused tests while editing. Before pushing a change that affects package
-contents, paths, signing, verification, or publication, run the complete local
-test command. A release must also pass the workflow's own build, verification,
-and provenance-attestation steps.
+Use Node.js 24. On the documented Windows host, follow the global runtime and
+GitHub transport instructions; on other hosts use normal supported local tools.
+Read [README.md](README.md) for commands and [release operations](docs/RELEASE.md)
+only for definition publication.
 
-## Publishing definitions
-
-`.github/workflows/release-update.yml` is the production publication path. It
-runs on its weekly schedule and may also be started manually with an explicit
-channel and minimum compatible Filtvatt version.
-
-Before a manual run:
-
-1. Confirm `main` is clean, pushed, and contains the intended rules and build
-   scripts.
-2. Choose `stable` or `emergency` deliberately.
-3. Set the real minimum compatible Filtvatt version; do not leave a stale
-   default without checking product compatibility.
-4. Start one workflow run and monitor it to completion. Do not repeatedly rerun
-   a failed job without reading the failing step.
-
-The workflow fetches ClamAV and capa from their official sources, builds and
-verifies one `.filtvatt-update`, creates provenance attestation, and publishes
-an immutable GitHub Release named `definitions-<version>`.
-
-After publication:
-
-1. Confirm the GitHub Release contains the package, `.sha256`, release metadata,
-   license files, and notices.
-2. Download the published package and checksum, verify SHA-256, and run
-   `node scripts/verify-update.mjs <package>`.
-3. Confirm the signed sequence is strictly newer and the channel/minimum product
-   version are correct.
-4. Verify an online Filtvatt installation can discover the release. Installation
-   into production still requires the product's normal validation and policy.
-
-The product's static channel at `filtvatt-updates.sajberhagen.com/product/` is a
-different release stream. Do not replace its `stable.json` while publishing
-definitions.
+Use focused tests while editing. Documentation-only changes need diff/link review,
+not the full suite. Before pushing changes to package contents, paths, signing,
+verification or publication, run the complete local test command. Release also
+requires the workflow's build, verification and provenance-attestation checks.
+Reuse passing checks with unchanged inputs; expand only for new changes or findings.
